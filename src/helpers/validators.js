@@ -1,3 +1,7 @@
+import {allPass, compose, curry, sum, gte, tap, map, equals, any, applyTo, dropLast} from 'ramda'
+import {COLORS, SHAPES} from '../constants.js';
+import { __ } from 'ramda';
+
 /**
  * @file Домашка по FP ч. 1
  *
@@ -13,26 +17,65 @@
  * Если какие либо функции написаны руками (без использования библиотек) это не является ошибкой
  */
 
-// 1. Красная звезда, зеленый квадрат, все остальные белые.
-export const validateFieldN1 = ({star, square, triangle, circle}) => {
-    if (triangle !== 'white' || circle !== 'white') {
-        return false;
-    }
 
-    return star === 'red' && square === 'green';
-};
+const isExactColor = curry((input, needed) => input === needed);
+const isRed = isExactColor(__, COLORS.RED);
+const isBlue = isExactColor(__, COLORS.BLUE);
+const isOrange = isExactColor(__, COLORS.ORANGE);
+const isGreen = isExactColor(__, COLORS.GREEN);
+const isWhite = isExactColor(__, COLORS.WHITE);
+
+const getFigure = curry((figures, name) => figures[name]);
+const getTriangle = getFigure(__, SHAPES.TRIANGLE);
+const getSquare = getFigure(__, SHAPES.SQUARE);
+const getCircle = getFigure(__, SHAPES.CIRCLE);
+const getStar = getFigure(__, SHAPES.STAR);
+const gettersList = [getTriangle, getSquare, getCircle, getStar];
+
+
+const countInObj = curry((data, getters, check) => sum(map((getter) => check(getter(data)), getters)));
+const countFigures = countInObj(__, gettersList);
+const countRed = countFigures(__, isRed);
+const countBlue = countFigures(__, isBlue);
+const countOrange = countFigures(__, isOrange);
+const countGreen = countFigures(__, isGreen);
+const countWhite = countFigures(__, isWhite);
+const countersList = [countRed, countBlue, countOrange, countGreen, countWhite];
+const coloredCountersList = dropLast(1, countersList);
+
+// 1. Красная звезда, зеленый квадрат, все остальные белые.
+export const validateFieldN1 = allPass([, compose(isWhite, getCircle),
+    compose(isGreen, getSquare),
+    compose(isWhite, getTriangle),
+    compose(isRed, getStar),
+]);
 
 // 2. Как минимум две фигуры зеленые.
-export const validateFieldN2 = () => false;
+const gte2 = curry(gte)(__, 2);
+export const validateFieldN2 = compose(
+    gte2,
+    countGreen,
+);
 
 // 3. Количество красных фигур равно кол-ву синих.
-export const validateFieldN3 = () => false;
+export const validateFieldN3 = figures => equals(countRed(figures), countBlue(figures));
 
 // 4. Синий круг, красная звезда, оранжевый квадрат треугольник любого цвета
-export const validateFieldN4 = () => false;
+export const validateFieldN4 = allPass([
+    compose(isBlue, getCircle),
+    compose(isOrange, getSquare),
+    // trinagle
+    compose(isRed, getStar)
+])
 
 // 5. Три фигуры одного любого цвета кроме белого (четыре фигуры одного цвета – это тоже true).
-export const validateFieldN5 = () => false;
+export const validateFieldN5 = compose(
+    gte(__, 3),
+    any,
+    tap(console.log),
+    map(__, countersList),
+    apply(__),
+)
 
 // 6. Ровно две зеленые фигуры (одна из зелёных – это треугольник), плюс одна красная. Четвёртая оставшаяся любого доступного цвета, но не нарушающая первые два условия
 export const validateFieldN6 = () => false;
