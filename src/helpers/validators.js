@@ -1,4 +1,4 @@
-import {allPass, compose, curry, sum, gte, tap, map, equals, any, applyTo, dropLast, apply, flip, anyPass, not, uniq} from 'ramda'
+import {allPass, compose, curry, sum, gte, tap, map, equals, any, applyTo, dropLast, not, uniq} from 'ramda'
 import {COLORS, SHAPES} from '../constants.js';
 import { __ } from 'ramda';
 
