@@ -41,7 +41,9 @@ jobs:
         run: npm ci
       
       - name: Build
-        run: npm run build
+        run: |
+          PUBLIC_URL="/shri-2024-fp"
+          npm run build
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
