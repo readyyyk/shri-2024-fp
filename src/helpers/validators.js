@@ -1,4 +1,4 @@
-import {allPass, compose, curry, sum, gte, tap, map, equals, any, applyTo, dropLast, not, uniq} from 'ramda'
+import {allPass, compose, curry, sum, gte, tap, map, equals, any, applyTo, dropLast, not, uniq, length} from 'ramda';
 import {COLORS, SHAPES} from '../constants.js';
 import { __ } from 'ramda';
 
@@ -104,12 +104,14 @@ export const validateFieldN9 = compose(
 
 // 10. Треугольник и квадрат одного цвета (не белого), остальные – любого цвета
 export const validateFieldN10 = allPass([
-    compose(not, isWhite, getTriangle, tap(console.log)),
+    compose(not, isWhite, getTriangle),
     compose(not, isWhite, getSquare),
     compose(
         equals(1),
+        length,
         uniq,
         map(__, [getSquare, getTriangle]),
         applyTo,
+        tap(console.log),
     ),
 ]);
