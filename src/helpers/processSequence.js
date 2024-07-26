@@ -29,7 +29,7 @@ import {
     ifElse,
     not,
     ap,
-    modify, andThen, modulo, partialRight,
+    modify, andThen, modulo, partialRight, otherwise, endsWith, toLower,
 } from 'ramda';
 
 const api = new Api();
@@ -42,30 +42,55 @@ const getWriteLog = getProp(__, 'writeLog');
 const getHandleSuccess = getProp(__, 'handleSuccess');
 const getHandleError = getProp(__, 'handleError');
 
-const apiDecToBin = async (dec) =>
-    api.get('https://api.tech/numbers/base', {from: 10, to: 2, number: String(dec)})
-        .then(a => a.result);
-const apiGetAnimal = async (num) =>
-    api.get('https://animals.tech/'+num, {})
-        .then(a => a.result)
-        .catch(e=>console.error(e));
+const forValueProp = modify('value')
+const forValuePropAsync = func => modify('value', andThen(func));
 
 const applyToMaybePromise = ([a, b]) =>
     isPromise(a)
         ? applyTo(a, andThen(b))
         : applyTo(a, b)
 
-const tappedHandleValue = handler => tap(compose(
+const handleValue = handler => compose(
     applyToMaybePromise,
-    tap(console.log),
     ap([getValue, handler]),
     a => [a],
-));
+);
+const tappedHandleValue = handler => tap(handleValue(handler));
 const tappedWriteValueLog = tappedHandleValue(getWriteLog);
 const tappedHandleValueSuccess = tappedHandleValue(getHandleSuccess);
+const tappedHandleValueError = tappedHandleValue(
+    ifElse(
+        compose(
+            andThen(endsWith('error')),
+            andThen(toLower),
+            andThen(String),
+            handleValue(a=>a)
+        ),
+        ()=>{},
+        getHandleError,
+    )
+);
+
+const getDataApiDecToBin = a => ({from: 10, to: 2, number: String(a)});
+const actionApiDecToBin = compose(
+    tappedHandleValueError,
+    forValuePropAsync(a => a.result),
+    forValueProp(otherwise(a=>({result: a}))),
+    forValueProp(api.get('https://api.tech/numbers/base')),
+    forValueProp(getDataApiDecToBin),
+);
+
+const getAnimalsApiUrl = num => 'https://animals.tech/'+num;
+const actionApiGetAnimal = compose(
+    tappedHandleValueError,
+    forValuePropAsync(a => a.result),
+    forValueProp(otherwise(a=>({result: a}))),
+    forValuePropAsync(api.get(__, {})),
+    forValuePropAsync(getAnimalsApiUrl),
+);
 
 const validate = allPass([
-    compose(tap(console.log), test(/^[0-9]*\.?[0-9]+$/g)),
+    test(/^[0-9]*\.?[0-9]+$/g),
     compose(gt(__, 2), length),
     compose(lt(__, 10), length)
 ]);
@@ -82,18 +107,23 @@ const pow2 = partialRight(Math.pow, [2]);
 const modulo3 = modulo(__, 3);
 const processSequence = compose(
     tappedHandleValueSuccess,
-    modify('value', andThen(apiGetAnimal)),
+    actionApiGetAnimal,
+
     tappedWriteValueLog,
-    modify('value', andThen(modulo3)),
+    forValuePropAsync(modulo3),
+
     tappedWriteValueLog,
-    modify('value', andThen(pow2)),
+    forValuePropAsync(pow2),
+
     tappedWriteValueLog,
-    modify('value', andThen(length)),
+    forValuePropAsync(length),
+
     tappedWriteValueLog,
-    modify('value', apiDecToBin),
+    actionApiDecToBin,
+
     tappedWriteValueLog,
-    modify('value', Math.round),
-    modify('value', parseFloat),
+    forValueProp(Math.round),
+    forValueProp(parseFloat),
     tappedValidate,
     tappedWriteValueLog,
 );
